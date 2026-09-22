@@ -1,12 +1,14 @@
 # Cursor data locations
 
-Where Cursor stores data on Linux, and how **cursor-switch** treats each path.
+Where Cursor stores data on Linux and macOS, and how **cursor-switch** treats each path.
+
+On **macOS**, the IDE user data directory is `~/Library/Application Support/Cursor` instead of `~/.config/Cursor`. The tool uses the correct path automatically; runtime data still lives in `~/.config/cursor-accounts`.
 
 ## Summary table
 
 | Path | What it is | Managed by cursor-switch | On account switch |
 |------|------------|--------------------------|-------------------|
-| `~/.config/Cursor` | IDE user data (settings, chats DB, workspaces) | **Yes** — moved to `shared/config/` on init; `--user-data-dir` | **Shared** (chats/plans stay) |
+| `~/.config/Cursor` (Linux) or `~/Library/Application Support/Cursor` (macOS) | IDE user data (settings, chats DB, workspaces) | **Yes** — moved to `shared/config/` on init; `--user-data-dir` | **Shared** (chats/plans stay) |
 | `~/.cursor` | Cursor home (plans, projects, extensions, `cli-config.json`) | **Yes** — moved to `shared/cursor-home/`; symlink | **Shared** |
 | `~/.config/cursor` | **CLI / `cursor agent`** auth (`auth.json`, prompt history) | **Yes** — stays in place; backed up & swapped | **Per account** (session bundle) |
 | `~/.config/cursor-accounts` | **This tool** (bundles, `accounts.toml`, logs) | **Yes** — our runtime dir | Tool metadata only |

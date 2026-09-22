@@ -73,6 +73,7 @@ def run_init(default_account: str = "work", *, force: bool = False) -> None:
             DEFAULT_CURSOR_CONFIG.unlink()
         else:
             shutil.rmtree(DEFAULT_CURSOR_CONFIG)
+    DEFAULT_CURSOR_CONFIG.parent.mkdir(parents=True, exist_ok=True)
     DEFAULT_CURSOR_CONFIG.symlink_to(SHARED_CONFIG)
 
     cfg = AccountsConfig(default=default_account, accounts={default_account: {}})

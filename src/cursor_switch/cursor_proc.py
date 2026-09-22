@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 import subprocess
+import sys
 import time
 import urllib.parse
 from pathlib import Path
@@ -25,6 +26,19 @@ def _pgrep_matches(pattern: str) -> bool:
         return False
 
 
+def _cursor_process_patterns() -> list[str]:
+    if sys.platform == "darwin":
+        return [
+            r"Cursor\.app/Contents/MacOS/Cursor",
+            r"Cursor\.app/Contents/Frameworks/Cursor Helper",
+        ]
+    return [r"/usr/share/cursor/cursor"]
+
+
+def _any_cursor_process_running() -> bool:
+    return any(_pgrep_matches(pattern) for pattern in _cursor_process_patterns())
+
+
 def cursor_agent_running() -> bool:
     return _pgrep_matches(r"cursor-agent")
 
@@ -32,7 +46,7 @@ def cursor_agent_running() -> bool:
 def cursor_running() -> bool:
     if CODE_LOCK.exists():
         return True
-    return _pgrep_matches(r"/usr/share/cursor/cursor")
+    return _any_cursor_process_running()
 
 
 def wait_for_cursor_exit(timeout: float = 30.0) -> bool:
@@ -67,19 +81,52 @@ def quit_cursor_agent(timeout: float = 15.0) -> None:
             )
 
 
+def _quit_cursor_macos() -> None:
+    log("Quitting Cursor via AppleScript")
+    subprocess.run(
+        ["osascript", "-e", 'tell application "Cursor" to quit'],
+        capture_output=True,
+        check=False,
+    )
+
+
+def _signal_cursor_processes(signal: str) -> None:
+    for pattern in _cursor_process_patterns():
+        subprocess.run(["pkill", signal, "-f", pattern], check=False)
+
+
 def quit_cursor(timeout: float = 30.0) -> None:
     quit_cursor_agent()
     if not cursor_running() and not CODE_LOCK.exists():
         return
-    log("Sending SIGTERM to Cursor processes")
-    subprocess.run(["pkill", "-TERM", "-f", r"/usr/share/cursor/cursor"], check=False)
+    if sys.platform == "darwin":
+        _quit_cursor_macos()
+        if not wait_for_cursor_exit(min(timeout, 15.0)):
+            log("Sending SIGTERM to remaining Cursor processes")
+            _signal_cursor_processes("-TERM")
+    else:
+        log("Sending SIGTERM to Cursor processes")
+        _signal_cursor_processes("-TERM")
     if not wait_for_cursor_exit(timeout):
         log("Cursor still running; sending SIGKILL")
-        subprocess.run(["pkill", "-KILL", "-f", r"/usr/share/cursor/cursor"], check=False)
+        _signal_cursor_processes("-KILL")
         if not wait_for_cursor_exit(10.0):
             raise RuntimeError(
                 "Cursor is still running. Close it manually, then retry."
             )
+
+
+def _lsof_has_open_file(path: Path) -> bool:
+    try:
+        result = subprocess.run(
+            ["lsof", str(path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return result.returncode == 0 and bool(result.stdout.strip())
+    except FileNotFoundError:
+        return False
 
 
 def db_has_open_handles(db_path: Path) -> bool:
@@ -89,6 +136,9 @@ def db_has_open_handles(db_path: Path) -> bool:
         str(Path(f"{db_path}-wal").resolve()),
         str(Path(f"{db_path}-shm").resolve()),
     }
+    if sys.platform == "darwin":
+        return any(_lsof_has_open_file(Path(target)) for target in targets)
+
     proc_root = Path("/proc")
     if not proc_root.is_dir():
         return False

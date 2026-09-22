@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from cursor_switch import __version__
@@ -12,8 +13,10 @@ from cursor_switch.paths import (
     ACCOUNTS_FILE,
     DEFAULT_CURSOR_CONFIG,
     ROOT,
+    SESSION_FILE,
     SHARED_CONFIG,
     STATE_DB,
+    cursor_config_label,
     is_initialized,
 )
 from cursor_switch.repair_cmd import run_repair
@@ -55,6 +58,8 @@ def _cmd_status(_: argparse.Namespace) -> None:
     active = read_active()
     cfg = load_accounts() if ACCOUNTS_FILE.exists() else None
     print(f"cursor-switch {__version__}")
+    print(f"Platform:    {sys.platform}")
+    print(f"Config dir:  {DEFAULT_CURSOR_CONFIG} ({cursor_config_label()})")
     print(f"Root:        {ROOT}")
     print(f"Initialized: {initialized}")
     print(f"Active:      {active or '(none)'}")
@@ -67,8 +72,6 @@ def _cmd_status(_: argparse.Namespace) -> None:
             email = cfg.accounts[name].get("email", "")
             bundle = ROOT / "accounts" / name / "session-bundle" / "meta.json"
             if bundle.exists():
-                import json
-
                 meta = json.loads(bundle.read_text(encoding="utf-8"))
                 email = meta.get("email") or email
             marker = " *" if name == active else ""
@@ -144,7 +147,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("list", help="List accounts").set_defaults(func=_cmd_list)
     sub.add_parser(
         "repair",
-        help="Fix accounts.toml registry and ~/.config/Cursor symlink",
+        help="Fix accounts.toml registry and Cursor config dir symlink",
     ).set_defaults(func=_cmd_repair)
 
     switch_p = sub.add_parser("switch", help="Switch account (alias: default command)")

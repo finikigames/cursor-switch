@@ -9,12 +9,13 @@ from cursor_switch.paths import (
     DEFAULT_CURSOR_CONFIG,
     ROOT,
     SHARED_CONFIG,
+    cursor_config_label,
     ensure_root,
 )
 
 
 def ensure_cursor_config_symlink() -> bool:
-    """Point ~/.config/Cursor at shared config so desktop launches use migrated data."""
+    """Point the platform Cursor config dir at shared config for desktop launches."""
     if not SHARED_CONFIG.is_dir():
         raise RuntimeError("Not initialized. Run `cursor-switch init` first.")
 
@@ -28,10 +29,11 @@ def ensure_cursor_config_symlink() -> bool:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         stray = ROOT / f"stray-config-Cursor-{stamp}"
         shutil.move(str(DEFAULT_CURSOR_CONFIG), stray)
-        log(f"Moved stray ~/.config/Cursor to {stray}")
+        log(f"Moved stray {cursor_config_label()} to {stray}")
 
+    DEFAULT_CURSOR_CONFIG.parent.mkdir(parents=True, exist_ok=True)
     DEFAULT_CURSOR_CONFIG.symlink_to(SHARED_CONFIG)
-    log("Linked ~/.config/Cursor -> shared/config")
+    log(f"Linked {cursor_config_label()} -> shared/config")
     return True
 
 

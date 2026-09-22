@@ -30,10 +30,19 @@ Shorthand: `cursor-switch work` is the same as `cursor-switch switch work`.
 
 ## Requirements
 
-- Linux (tested paths: `~/.config/Cursor`, `~/.cursor`)
+- **Linux** or **macOS**
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
-- Cursor IDE installed (`cursor` on PATH)
+- Cursor IDE installed (`cursor` on PATH or `/Applications/Cursor.app` on macOS)
+
+### Data paths by platform
+
+| Platform | IDE user data | Cursor home | CLI auth (optional) |
+|----------|---------------|-------------|---------------------|
+| Linux | `~/.config/Cursor` | `~/.cursor` | `~/.config/cursor` |
+| macOS | `~/Library/Application Support/Cursor` | `~/.cursor` | `~/.config/cursor` (if CLI created it) |
+
+Override any path with env vars: `CURSOR_SWITCH_CONFIG_DIR`, `CURSOR_SWITCH_HOME_DIR`, `CURSOR_SWITCH_CLI_DIR`, `CURSOR_SWITCH_ROOT`, `CURSOR_SWITCH_CURSOR_BIN`.
 
 ## Documentation
 
